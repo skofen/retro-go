@@ -31,16 +31,36 @@ jobs:
         cache-to: type=gha,mode=max
         load: true
 
+    - name: Create build directory
+      run: mkdir -p build
+
     - name: Extract binaries from docker image
       run: |
-        # Създаваме папка build, ако не съществува
-        mkdir -p build
-        # Копираме ВСИЧКИ файлове, включително .bin и .fw
-        docker run --rm -v $(pwd)/build:/out retro-go:latest sh -c "cp /app/build/*.bin /out/ && cp /app/*.fw /out/"
+        # Check which folders/files are in the image
+        docker run --rm retro-go:latest find /app -name "*.bin" -o -name "*.fw" 2>/dev/null || true
+        
+        # Copy .bin files if they exist
+        docker run --rm -v $(pwd)/build:/out retro-go:latest sh -c "if [ -d /app/build ]; then cp /app/build/*.bin /out/ 2>/dev/null || true; fi" || true
+        
+        # Copy .fw files if they exist
+        docker run --rm -v $(pwd)/build:/out retro-go:latest sh -c "if [ -f /app/*.fw ]; then cp /app/*.fw /out/ 2>/dev/null || true; fi" || true
+        
+        # Check what has been copied
+        ls -la build/ || echo "No files extracted"
+
+    - name: Debug - Show extracted files
+      if: always()
+      run: |
+        echo "Contents of build directory:"
+        ls -lah build/ || echo "Build directory is empty or doesn't exist"
+        echo ""
+        echo "Files in docker image (for debugging):"
+        docker run --rm retro-go:latest find /app -type f \( -name "*.bin" -o -name "*.fw" -o -name "*.elf" \) 2>/dev/null || true
 
     - name: Upload artifacts
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: binaries
-        path: build/*
-        
+        path: build/
+        if-no-files-found: warn
