@@ -31,7 +31,7 @@ jobs:
         cache-to: type=gha,mode=max
         load: true
 
-  - name: Extract binaries from docker image
+    - name: Extract binaries from docker image
       run: |
         # Създаваме папка build, ако не съществува
         mkdir -p build
