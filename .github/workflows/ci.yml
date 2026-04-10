@@ -1,66 +1,87 @@
-name: ci
+name: Build Binary Artifacts
 
 on:
-  workflow_dispatch:      # Start a workflow
+  workflow_dispatch:
   push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
 
     steps:
-    # Remove ~18 GiB of preinstalled software to have more disk space during the build
-    - name: Cleanup runner
-      run: |
-        df -h
-        sudo rm -rf /opt/microsoft /usr/local/.ghcup /usr/local/julia* /usr/share/dotnet /usr/share/swift /usr/lib/llvm*
-        df -h
+      - name: Cleanup runner
+        run: |
+          df -h
+          sudo rm -rf /opt/microsoft /usr/local/.ghcup /usr/local/julia* /usr/share/dotnet /usr/share/swift /usr/lib/llvm*
+          df -h
 
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Build
-      uses: docker/build-push-action@v6
-      with:
-        context: .
-        tags: retro-go:latest
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        load: true
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          tags: retro-go:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          load: true
 
-    - name: Create build directory
-      run: mkdir -p build
+      - name: Create build directory
+        run: mkdir -p build
 
-    - name: Extract binaries from docker image
-      run: |
-        # Check which folders/files are in the image
-        docker run --rm retro-go:latest find /app -name "*.bin" -o -name "*.fw" 2>/dev/null || true
-        
-        # Copy .bin files if they exist
-        docker run --rm -v $(pwd)/build:/out retro-go:latest sh -c "if [ -d /app/build ]; then cp /app/build/*.bin /out/ 2>/dev/null || true; fi" || true
-        
-        # Copy .fw files if they exist
-        docker run --rm -v $(pwd)/build:/out retro-go:latest sh -c "if [ -f /app/*.fw ]; then cp /app/*.fw /out/ 2>/dev/null || true; fi" || true
-        
-        # Check what has been copied
-        ls -la build/ || echo "No files extracted"
+      - name: Extract binaries
+        run: |
+          echo "Searching for binary files in Docker image..."
+          docker run --rm retro-go:latest find /app -type f \( -name "*.bin" -o -name "*.fw" -o -name "*.elf" \) 2>/dev/null || echo "No binaries found in search"
+          
+          echo "Extracting .bin files..."
+          docker run --rm -v $(pwd)/build:/out retro-go:latest sh -c "if [ -d /app/build ]; then cp /app/build/*.bin /out/ 2>/dev/null || true; fi"
+          
+          echo "Extracting .fw files..."
+          docker run --rm -v $(pwd)/build:/out retro-go:latest sh -c "if [ -f /app/*.fw ]; then cp /app/*.fw /out/ 2>/dev/null || true; fi"
+          
+          echo "Build directory contents:"
+          ls -lah build/ || echo "No files extracted"
 
-    - name: Debug - Show extracted files
-      if: always()
-      run: |
-        echo "Contents of build directory:"
-        ls -lah build/ || echo "Build directory is empty or doesn't exist"
-        echo ""
-        echo "Files in docker image (for debugging):"
-        docker run --rm retro-go:latest find /app -type f \( -name "*.bin" -o -name "*.fw" -o -name "*.elf" \) 2>/dev/null || true
+      - name: Verify artifacts
+        run: |
+          if [ -z "$(ls -A build/)" ]; then
+            echo "WARNING: No binary files were extracted!"
+            exit 0
+          fi
+          echo "Successfully extracted binaries:"
+          find build/ -type f -exec ls -lh {} \;
 
-    - name: Upload artifacts
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: binaries
-        path: build/
-        if-no-files-found: warn
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: retro-go-binaries-${{ github.run_id }}
+          path: build/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Build summary
+        if: always()
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** Build completed" >> $GITHUB_STEP_SUMMARY
+          echo "**Artifacts:** $(ls -1 build/ 2>/dev/null | wc -l) files" >> $GITHUB_STEP_SUMMARY
+          if [ -d build ] && [ -n "$(ls -A build/)" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Generated files:**" >> $GITHUB_STEP_SUMMARY
+            ls -1 build/ | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY
+          fi
