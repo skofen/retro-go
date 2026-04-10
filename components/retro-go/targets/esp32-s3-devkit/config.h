@@ -70,7 +70,7 @@
 
 
 // Status LED
-#define RG_GPIO_LED                 GPIO_NUM_38
+#define RG_GPIO_LED                 GPIO_NUM_47
 
 // SPI Display (back up working)
 // ПИНОВЕ ЗА ДАННИ
