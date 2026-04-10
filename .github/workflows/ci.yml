@@ -31,12 +31,15 @@ jobs:
         cache-to: type=gha,mode=max
         load: true
 
-    - name: Extract binaries from docker image
+  - name: Extract binaries from docker image
       run: |
-        docker run --rm -v $(pwd)/build:/build retro-go:latest sh -c "cp /app/*.fw /build"
+        # Създаваме папка build, ако не съществува
+        mkdir -p build
+        # Копираме ВСИЧКИ файлове, включително .bin и .fw
+        docker run --rm -v $(pwd)/build:/out retro-go:latest sh -c "cp /app/build/*.bin /out/ && cp /app/*.fw /out/"
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: binaries
-        path: build/*.fw
+        path: build/*
