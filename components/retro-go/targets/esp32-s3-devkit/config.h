@@ -14,12 +14,12 @@
 #define RG_AUDIO_USE_EXT_DAC        1   // 0 = Disable, 1 = Enable
 
 // Video
-#define RG_SCREEN_DRIVER            0   // 0 = ILI9341/ST7789
-#define RG_SCREEN_HOST              SPI2_HOST
+#define RG_SCREEN_DRIVER            1   // 0 = ILI9341/ST7789
+#define RG_SCREEN_HOST              -1
 #define RG_SCREEN_SPEED             SPI_MASTER_FREQ_40M // SPI_MASTER_FREQ_80M
 #define RG_SCREEN_BACKLIGHT         1
-#define RG_SCREEN_WIDTH             320
-#define RG_SCREEN_HEIGHT            240
+#define RG_SCREEN_WIDTH             480
+#define RG_SCREEN_HEIGHT            320
 #define RG_SCREEN_ROTATE            0
 #define RG_SCREEN_VISIBLE_AREA      {0, 0, 0, 0}
 #define RG_SCREEN_SAFE_AREA         {0, 0, 0, 0}
@@ -62,7 +62,7 @@
 }
 
 // Battery
-#define RG_BATTERY_DRIVER           1
+#define RG_BATTERY_DRIVER           0
 #define RG_BATTERY_ADC_UNIT         ADC_UNIT_1
 #define RG_BATTERY_ADC_CHANNEL      ADC_CHANNEL_3
 #define RG_BATTERY_CALC_PERCENT(raw) (((raw) * 2.f - 3500.f) / (4200.f - 3500.f) * 100.f)
@@ -73,21 +73,25 @@
 #define RG_GPIO_LED                 GPIO_NUM_38
 
 // SPI Display (back up working)
-#define RG_GPIO_LCD_MISO            GPIO_NUM_NC
-#define RG_GPIO_LCD_MOSI            GPIO_NUM_12
-#define RG_GPIO_LCD_CLK             GPIO_NUM_48
-#define RG_GPIO_LCD_CS              GPIO_NUM_NC
-#define RG_GPIO_LCD_DC              GPIO_NUM_47
-#define RG_GPIO_LCD_BCKL            GPIO_NUM_39
-#define RG_GPIO_LCD_RST             GPIO_NUM_3
+// ПИНОВЕ ЗА ДАННИ
+#define RG_GPIO_LCD_D0              1
+#define RG_GPIO_LCD_D1              2
+#define RG_GPIO_LCD_D2              3
+#define RG_GPIO_LCD_D3              4
+#define RG_GPIO_LCD_D4              5
+#define RG_GPIO_LCD_D5              6
+#define RG_GPIO_LCD_D6              7
+#define RG_GPIO_LCD_D7              8
 
-#define RG_GPIO_SDSPI_MISO          GPIO_NUM_9
-#define RG_GPIO_SDSPI_MOSI          GPIO_NUM_11
-#define RG_GPIO_SDSPI_CLK           GPIO_NUM_13
-#define RG_GPIO_SDSPI_CS            GPIO_NUM_10
+// УПРАВЛЕНИЕ
+#define RG_GPIO_LCD_WR              12
+#define RG_GPIO_LCD_RS              11
+#define RG_GPIO_LCD_CS              10
+#define RG_GPIO_LCD_RST             9
 
-// External I2S DAC
-#define RG_GPIO_SND_I2S_BCK         41
-#define RG_GPIO_SND_I2S_WS          42
-#define RG_GPIO_SND_I2S_DATA        40
-// #define RG_GPIO_SND_AMP_ENABLE      18
+// SPI ЗА SD КАРТАТА (БЕЗ ПРОМЯНА)
+#define RG_GPIO_SDSPI_MISO          9
+#define RG_GPIO_SDSPI_MOSI          11
+#define RG_GPIO_SDSPI_CLK           13
+#define RG_GPIO_SDSPI_CS            10
+
